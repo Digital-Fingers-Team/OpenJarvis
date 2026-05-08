@@ -1,0 +1,24 @@
+[project]
+name = "minimal_jarvis"
+version = "0.0.1"
+description = "Minimal AI agent system based on OpenJarvis"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31.0",
+    "pydantic>=2.0.0",
+    "ollama>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "click>=8.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["minimal_jarvis*"]

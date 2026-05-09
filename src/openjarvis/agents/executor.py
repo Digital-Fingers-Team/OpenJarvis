@@ -650,3 +650,26 @@ class AgentExecutor:
                 agent_id,
                 exc_info=True,
             )
+
+
+import asyncio
+import json
+
+from openjarvis.agents.base import AgentInput as _AdvAgentInput, AgentOutput as _AdvAgentOutput, BaseAgent as _AdvBaseAgent
+
+
+class ExecutorAgent(_AdvBaseAgent):
+    async def execute(self, input: _AdvAgentInput) -> _AdvAgentOutput:
+        selection = json.loads(input.data)
+        tool_name = selection.get("tool_name", "none")
+        if tool_name == "none":
+            return _AdvAgentOutput(result="No tool needed for this step", confidence=1.0)
+        tool = self.tools.get(tool_name) if hasattr(self.tools, "get") else None
+        if tool is None:
+            return _AdvAgentOutput(result=f"Tool '{tool_name}' not found", confidence=0.0)
+        try:
+            loop = asyncio.get_running_loop()
+            result = await asyncio.wait_for(loop.run_in_executor(None, lambda: tool.execute(**selection.get("arguments", {}))), timeout=30)
+            return _AdvAgentOutput(result=str(result), confidence=0.95, reasoning=[f"Executed {tool_name}"])
+        except Exception as e:
+            return _AdvAgentOutput(result=f"Tool execution failed: {e}", confidence=0.0)

@@ -374,3 +374,44 @@ class OrchestratorAgent(ToolUsingAgent):
 
 
 __all__ = ["OrchestratorAgent"]
+
+
+import json
+from pydantic import BaseModel, Field
+from openjarvis.agents.base import AgentInput as _AIn, AgentOutput as _AOut, BaseAgent as _ABase
+from openjarvis.agents.intake import IntakeAgent
+from openjarvis.agents.planner import PlannerAgent
+from openjarvis.agents.tool_selector import ToolSelectorAgent
+from openjarvis.agents.executor import ExecutorAgent
+from openjarvis.agents.reflector import ReflectorAgent
+from openjarvis.agents.synthesizer import SynthesizerAgent
+
+class ExecutionState(BaseModel):
+    query: str
+    steps_taken: int = 0
+    step_results: list = Field(default_factory=list)
+    reasoning_trace: list = Field(default_factory=list)
+
+class AgentOrchestrator(_ABase):
+    def __init__(self, engine, tools, memory):
+        super().__init__(engine, tools, memory)
+        self.intake = IntakeAgent(engine, tools, memory)
+        self.planner = PlannerAgent(engine, tools, memory)
+        self.tool_selector = ToolSelectorAgent(engine, tools, memory)
+        self.executor = ExecutorAgent(engine, tools, memory)
+        self.reflector = ReflectorAgent(engine, tools, memory)
+        self.synthesizer = SynthesizerAgent(engine, tools, memory)
+
+    async def execute(self, input: _AIn) -> _AOut:
+        state = ExecutionState(query=input.data)
+        intake_output = await self.intake.execute(_AIn(data=input.data))
+        plan_output = await self.planner.execute(_AIn(data=intake_output.result))
+        plan = json.loads(plan_output.result)
+        for step in plan.get("steps", []):
+            state.steps_taken += 1
+            sel = await self.tool_selector.execute(_AIn(data=json.dumps(step)))
+            ex = await self.executor.execute(_AIn(data=sel.result))
+            await self.reflector.execute(_AIn(data=json.dumps({"result": ex.result})))
+            state.step_results.append({"description": step.get("description", ""), "result": ex.result})
+        synth = await self.synthesizer.execute(_AIn(data=json.dumps(state.model_dump())))
+        return _AOut(result=synth.result, confidence=0.9, reasoning=state.reasoning_trace, metadata={"steps_taken": state.steps_taken})

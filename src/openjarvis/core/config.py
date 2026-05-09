@@ -2000,3 +2000,21 @@ __all__ = [
     "recommend_model",
     "validate_config_key",
 ]
+
+
+from dataclasses import dataclass
+
+
+@dataclass
+class JarvisPreset:
+    name: str
+    features: dict[str, bool]
+    max_agents: int
+    tools: list[str]
+
+
+PRESETS = {
+    "simple": JarvisPreset(name="simple", features={"learning": False, "safety": True, "vector_memory": False}, max_agents=1, tools=["calculator", "shell"]),
+    "intermediate": JarvisPreset(name="intermediate", features={"learning": False, "safety": True, "vector_memory": True}, max_agents=3, tools=["calculator", "shell", "web_search"]),
+    "advanced": JarvisPreset(name="advanced", features={"learning": True, "safety": True, "vector_memory": True}, max_agents=7, tools=["calculator", "shell", "web_search"]),
+}

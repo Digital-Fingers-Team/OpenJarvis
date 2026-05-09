@@ -13,6 +13,8 @@ from openjarvis.core.events import EventBus
 from openjarvis.core.types import Message, Role
 from openjarvis.engine._discovery import get_engine
 from openjarvis.system import JarvisSystem, SystemBuilder
+from openjarvis.agents.base import AgentInput
+from openjarvis.agents.orchestrator import AgentOrchestrator
 from openjarvis.telemetry.instrumented_engine import InstrumentedEngine
 from openjarvis.telemetry.store import TelemetryStore
 
@@ -174,6 +176,7 @@ class Jarvis:
         self._audit_logger: Any = None
         self._capability_policy: Any = None
         self.memory = MemoryHandle(self._config)
+        self._advanced_orchestrator: Optional[AgentOrchestrator] = None
 
         # Set up telemetry
         if self._config.telemetry.enabled:
@@ -618,6 +621,26 @@ class Jarvis:
                 logger.debug("Error closing audit logger: %s", exc)
             self._audit_logger = None
         self._engine = None
+
+    async def ask_advanced(self, query: str) -> dict[str, Any]:
+        """Run the lightweight multi-agent orchestrator flow."""
+        self._ensure_engine()
+        if self._advanced_orchestrator is None:
+            class _ToolShim:
+                def get(self, _name: str) -> Any:
+                    return None
+
+            self._advanced_orchestrator = AgentOrchestrator(
+                self._engine,
+                _ToolShim(),
+                self.memory,
+            )
+        result = await self._advanced_orchestrator.execute(AgentInput(data=query))
+        return {
+            "response": result.result,
+            "reasoning": result.reasoning,
+            "turns": result.metadata.get("steps_taken", 1),
+        }
 
     def __enter__(self) -> Jarvis:
         return self

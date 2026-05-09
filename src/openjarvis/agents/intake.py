@@ -4,6 +4,7 @@ from typing import List
 from pydantic import BaseModel
 
 from openjarvis.agents.base import AgentInput, AgentOutput, BaseAgent
+from openjarvis.core.registry import AgentRegistry
 
 
 class ParsedIntent(BaseModel):
@@ -14,6 +15,7 @@ class ParsedIntent(BaseModel):
     requires_planning: bool
 
 
+@AgentRegistry.register("intake")
 class IntakeAgent(BaseAgent):
     async def execute(self, input: AgentInput) -> AgentOutput:
         intent = ParsedIntent(goal=input.data, entities=[], constraints=[], complexity="simple", requires_planning=False)

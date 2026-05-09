@@ -4,6 +4,7 @@ from typing import List
 from pydantic import BaseModel, Field
 
 from openjarvis.agents.base import AgentInput, AgentOutput, BaseAgent
+from openjarvis.core.registry import AgentRegistry
 
 
 class Step(BaseModel):
@@ -17,6 +18,7 @@ class Plan(BaseModel):
     steps: List[Step]
 
 
+@AgentRegistry.register("planner")
 class PlannerAgent(BaseAgent):
     async def execute(self, input: AgentInput) -> AgentOutput:
         intent = json.loads(input.data)

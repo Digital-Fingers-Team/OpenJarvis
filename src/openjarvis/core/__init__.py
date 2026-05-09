@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from openjarvis.core.database import DatabaseManager
 from openjarvis.core.registry import (
     AgentRegistry,
     EngineRegistry,
@@ -22,6 +23,7 @@ from openjarvis.core.types import (
 
 __all__ = [
     "AgentRegistry",
+    "DatabaseManager",
     "Conversation",
     "EngineRegistry",
     "MemoryRegistry",
